@@ -1,5 +1,6 @@
 /*
-# Progetto di Tesi su Applicazioni TinyML
+# Progetto di Tesi su:
+# Classificazione su base audio del traffico con algoritmi di TinyML su dispositivi embedded
 # Autore: Francesco Maccantelli
 # Data: 20/05/2022
 # Università degli Studi di Siena
@@ -15,8 +16,8 @@ static const char channels = 1;
 static const int frequency = 16000;
 
 // Buffer to read samples into, each sample is 16-bits
-uint16_t sampleBuffer[512]; //valore precedente 1024
-uint8_t sampleBuffer_8bit[1536]; //valore precedente 1536
+uint16_t sampleBuffer[512]; 
+uint8_t sampleBuffer_8bit[1536]; 
 int sb_index = 0;
 
 // Number of audio samples read
@@ -33,10 +34,7 @@ void setup() {
   // Defaults to 20 on the BLE Sense and 24 on the Portenta Vision Shield
    PDM.setGain(127);
 
-  // Initialize PDM with:
-  // - one channel (mono mode)
-  // - a 16 kHz sample rate for the Arduino Nano 33 BLE Sense
-  // - a 32 kHz or 64 kHz sample rate for the Arduino Portenta Vision Shield
+
   if (!PDM.begin(channels, frequency)) {
     SerialUSB.println("Failed to start PDM!");
     while (1);
@@ -49,8 +47,9 @@ void loop() {
   
   if (samplesRead) {
 
+    // Conversion 16bit sample to 8 bit sample, adding \n 
     for (int i = 0; i < samplesRead; i=i+1) {
-// 
+
       sampleBuffer_8bit[sb_index] = '\n';
       sb_index ++;
       
@@ -60,6 +59,7 @@ void loop() {
       sampleBuffer_8bit[sb_index] = (sampleBuffer[i] & 0xFF);
       sb_index ++;
 
+      //Sending data via SerialUSB
       if (sb_index >= 1536){
  
         SerialUSB.write(sampleBuffer_8bit,sb_index);
