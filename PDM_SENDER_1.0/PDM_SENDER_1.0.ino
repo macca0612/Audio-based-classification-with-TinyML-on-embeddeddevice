@@ -1,14 +1,9 @@
 /*
-  This example reads audio data from the on-board PDM microphones, and prints
-  out the samples to the Serial console. The Serial Plotter built into the
-  Arduino IDE can be used to plot the audio data (Tools -> Serial Plotter)
-
-  Circuit:
-  - Arduino Nano 33 BLE board, or
-  - Arduino Nano RP2040 Connect, or
-  - Arduino Portenta H7 board plus Portenta Vision Shield
-
-  This example code is in the public domain.
+# Progetto di Tesi su Applicazioni TinyML
+# Autore: Francesco Maccantelli
+# Data: 20/05/2022
+# Università degli Studi di Siena
+# Software di Calibrazione - Acquisizione dati
 */
 
 #include <PDM.h>
@@ -20,8 +15,8 @@ static const char channels = 1;
 static const int frequency = 16000;
 
 // Buffer to read samples into, each sample is 16-bits
-uint16_t sampleBuffer[2048];
-uint8_t sampleBuffer_8bit[6200];
+uint16_t sampleBuffer[512]; //valore precedente 1024
+uint8_t sampleBuffer_8bit[1536]; //valore precedente 1536
 int sb_index = 0;
 
 // Number of audio samples read
@@ -39,7 +34,7 @@ void setup() {
    PDM.setGain(127);
 
   // Initialize PDM with:
-  // - one channel (mono mode) 
+  // - one channel (mono mode)
   // - a 16 kHz sample rate for the Arduino Nano 33 BLE Sense
   // - a 32 kHz or 64 kHz sample rate for the Arduino Portenta Vision Shield
   if (!PDM.begin(channels, frequency)) {
@@ -50,26 +45,32 @@ void setup() {
 
 void loop() {
   // Wait for samples to be read
+  while(!SerialUSB);
   
   if (samplesRead) {
 
     for (int i = 0; i < samplesRead; i=i+1) {
-
+// 
       sampleBuffer_8bit[sb_index] = '\n';
       sb_index ++;
+      
       sampleBuffer_8bit[sb_index] = (sampleBuffer[i] >> 8) & 0xFF;
       sb_index ++;
+ 
       sampleBuffer_8bit[sb_index] = (sampleBuffer[i] & 0xFF);
       sb_index ++;
 
-  }
-
-    if (sb_index >= 6144){
+      if (sb_index >= 1536){
  
         SerialUSB.write(sampleBuffer_8bit,sb_index);
  
         sb_index=0;
         }
+      
+
+  }
+
+    
         
     // Clear the read count
     samplesRead = 0;
