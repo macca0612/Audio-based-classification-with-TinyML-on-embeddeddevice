@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt    #lilbrary to plot
 import os       #library for scroll to all file
 import torch    #library for YOLO
 import time     #library for time
-#import shutil   #limbrary for copy/paste
+import shutil   #limbrary for copy/paste
 import serial
 import cv2
 from tqdm import tqdm
@@ -110,7 +110,7 @@ def video_test(path_to_analyze):
     video_folder = path_to_analyze + "/video"
 
     #import YOLO model
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5l')  # or yolov5n - yolov5x6, custom
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')  # or yolov5n - yolov5x6, custom
   
 
     #scroll to all video file
@@ -127,13 +127,10 @@ def print_graph_from_file(path_file):
     list_file_name = []
     list_t_i = []
     
-    
-
     with open(path_file) as file:
         lines = file.readlines()
 
     
-
     for line in tqdm(lines):
         list_file_name.append(line[:19])
         t_i = float(line[20:][:-1])
@@ -141,7 +138,6 @@ def print_graph_from_file(path_file):
         list_t_i.append(t_i)
         
         
-
     x=range(len(list_t_i))
 
     plt.plot(x,list_t_i,color='green', linestyle='solid', linewidth = 1,
@@ -202,7 +198,7 @@ def export_audio_file(path_save_file,thresholds):
         print("ERROR! - threshold list not set propriely, must be a 2 dimension list with numbers e.g. [125.5,500]")
         quit()
 
-    base_path_audio = path_save_file[:-24]+"export"
+    base_path_audio = path_save_file[:-24]+"audio"
     base_path_export = path_save_file[:-24]+"export"
 
     export_audio_log = base_path_export + "/export_audio_log.txt"
@@ -227,9 +223,11 @@ def export_audio_file(path_save_file,thresholds):
         path_selected =  base_path_audio + "/" + name_selected[:-4] + ".json"
         path_destination = base_path_export + "/" + prefix + str(t_i_selected) + "." + name_selected[:-4] + ".json"
 
-        #shutil.copyfile(path_selected, path_destination)
         try:
-            os.rename(path_selected, path_destination)
+            # INFO:
+            # if shutil.copyfile is slow is possible to use os.rename, but all audio file must be copied in export folder
+            # os.rename(path_selected, path_destination)
+            shutil.copyfile(path_selected, path_destination)
         except:
             print("ERRORE ! - file: ",path_selected," NON TROVATO")
 
@@ -240,33 +238,86 @@ def check_export(path_export_file):
 
     base_folder = path_export_file[:-27]
     list_name, list_t_i, list_class = Get_list_name_t_i_class_fromFile(path_export_file)
+    
+    edit = 0
 
-    selection = input("Press I: Intenso, P: Presente, A: Assente")
-    if not selection == ("I" or "P" or "A"):
+    selection = str(input("Select target to analyze I: Intenso, P: Presente, A: Assente: "))
+    if selection not in ["A","P","I"] :
         print("Selezione non valida")
         return None
 
     video_folder = base_folder + "/video"
 
     for i in range(len(list_name)):
-        print(list_class[i])
+        # print(list_class[i])
         if list_class[i] == selection:
             Play_video(video_folder+"/"+str(list_name[i]))
         else:
             continue
-        val = input("The video is " + selection + " ? : [y/n/r:repeat] :")
+        
+        val = input("The video is " + selection + " ? : [y/n/] :")
        
-        if val == "y" or "Y" or "yes" or "Yes":
+        if val == "y":
             continue
         else:
-            new_class = input("Select classification [I,P,A]: ")
-
-
-
-
-
+            print("here")
+            exit_value = True
+            while (exit_value):
+                edit = 1
+                new_class = input("Select classification [I,P,A]: ")
+                if new_class in ["I","P","A"]:
+                    print("The new selected class is: ",new_class)
+                    list_class[i] = new_class
+                    exit_value = False
+                else:
+                    print("ERROR - Selected type not valid")
+                    
+        # Check if there was a change from original file
+    if edit == 1:
+        
+        print("SAVING new export file")
+        
+        # make backup
+        path_export_file_backup = path_export_file[:-4] + "_backup.txt"
+        shutil.copyfile(path_export_file, path_export_file_backup)
+        
+        audio_log = open(path_export_file,"w")
+        
+        for entry_index in range(len(list_name)):
+            audio_log.write(str(list_name[entry_index]) + " " + str(list_t_i[entry_index]) + " " + str(list_class[entry_index])+ "\n")
+            
+def change_validation(path_export_file):
+    
+    list_name, list_t_i, list_class = Get_list_name_t_i_class_fromFile(path_export_file)
+    # print(list_name)
+    folder_export = path_export_file[:-21]
+    # print(folder_export)
+    
+    for filename in tqdm(os.listdir(folder_export)):
+        # print("ultime 4:",filename[-4:])
+        if filename[-4:] != "json":
+            continue
+        name_file = filename[-20:]
+        name_file = name_file[:-5]
+        name_file = name_file + ".avi"
+        # print(name_file)
+        index = list_name.index(name_file)
+        if list_class[index] == "I":
+            prefix = "INTENSO."
+        elif list_class[index] == "A":
+            prefix = "ASSTENTE."
+        elif list_class[index] == "P":
+            prefix = "PRESENTE."
+        
+        os.rename(folder_export+"/"+filename,folder_export+"/"+prefix+name_file[:-4]+".json")
+        
+    print("ALL FILES ARE DONE!")
+    
 
 def VideoTesting(webcam_number,serial_port,video_path,fps,record_time):
+    """
+    This function allow to test the system by a live capture of video with live prediction from Arduino
+    """
     webcam = cv2.VideoCapture(webcam_number,cv2.CAP_DSHOW)
     input_serial = serial.Serial(serial_port,115200,timeout=None)
 
@@ -466,9 +517,9 @@ def main():
                                                                        |___/           """)
     print("for thesis :")
     print("Classificazione su base audio del traffico con algoritmi di TinyML su dispositivi embedded")
-    print("made by:")
+    print("by:")
     print("Francesco Maccantelli")
-    print("Universitá degli Studi di Siena - 20/05/2022")
+    print("Università degli Studi di Siena - 20/05/2022")
 
     while True:
 
@@ -476,12 +527,13 @@ def main():
         print("Select function:\n1) Video analysys:\n[path_folder_to_analyze] (Attention! in this folder must be almost 3 folders audio,video,export)")
         print("2) Print grph from save file\n[path_save_file]\n3) Export audio file based on threshold\n[path_save_file,list_threshold] (Attention! list threshold must be 2 dimension list with numbers, like [50,500])")
         print("4) Draw black box")
-        print("5) Video Testing")
+        print("5) Video Testing prediction with webcam")
         print("6) Video test YOLO")
         print("7) Play video")
         print("8) check export")
-        print("9) Exit")
-        selection = input("\n------------------------------------------\nSelect function [1,2,3,4,5,6,7,8] :")
+        print("9) change validation export")
+        print("10) Exit")
+        selection = input("\n------------------------------------------\nSelect function [1,2,3,4,5,6,7,8,9,10] :")
 
         if selection == "1":
             print("## Video analysys ##")
@@ -532,7 +584,9 @@ def main():
         elif selection =="5":
             webcam_number = 1
             serial_port = "COM3"
-
+            
+            
+            print("Select FOLDER where save video - ! Must be set serial-port and webcam_number (main_analisi.py) params before")
             root = tk.Tk()
             root.withdraw()
 
@@ -568,9 +622,16 @@ def main():
             root.withdraw()
             path_export_file = filedialog.askopenfilename()
             check_export(path_export_file)
+        
+        elif selection == "9":
+            print("Selecte export file")
+            root = tk.Tk()
+            root.withdraw()
+            path_export_file = filedialog.askopenfilename()
+            change_validation(path_export_file)
 
         elif selection == "9" or "q" or "Q" or "quit" or "QUIT":
-            print("Sono dentro qua!")
+            # print("Sono dentro qua!")
             print("Quitting...")
             quit()
         else:

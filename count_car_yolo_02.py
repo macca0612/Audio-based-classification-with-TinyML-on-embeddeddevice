@@ -11,7 +11,6 @@ import cv2
 import numpy as np
 import imutils
 
-file_path = "G:/Il mio Drive/AA TESI/script_py/Video_training/high_traffic_day/high_traffic_day.mp4"
 
 #Definizioni pesi traffic_index per categoria
 #PCU: Passenger Car Unit
@@ -158,8 +157,8 @@ def count_veichle(video_path,model,show_bool,cover_box,print_found):
 def main():
     import torch
     # Modello YOLO
-    url = "G:/Il mio Drive/AA TESI/win_code/analisi/analisi_06_22_08_21/video/20220622-110041.avi"
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5l')  # or yolov5n - yolov5x6, custom
+    url = "INSERT HERE A PATH OF A TRAFFIC VIDEO FOR TESTING"
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')  # or yolov5n - yolov5x6, custom
     _ = count_veichle(url,model,True,True,False)
     #                           Show,Cover,Print
 
