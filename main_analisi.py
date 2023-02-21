@@ -6,10 +6,6 @@
 # Software per creazione TrainingSet - Main Analisi
 
 
-from ast import operator
-from select import select
-from socket import timeout
-from cv2 import threshold
 import count_car_yolo_02                         #script to analyze video and get traffic_index
 from matplotlib import pyplot as plt    #lilbrary to plot
 import os       #library for scroll to all file
